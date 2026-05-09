@@ -1,0 +1,107 @@
+# ─── Deploy ───────────────────────────────────────────────────────────────────
+# Build app image → push to ECR → SSH to EC2 → reload systemd unit (pulls + up).
+#
+# Required GitHub Variables (Settings → Secrets and variables → Actions):
+#   AWS_REGION              — e.g. us-east-1
+#   AWS_ACCOUNT_ID          — 12-digit AWS account ID
+#   APP_NAME                — e.g. portfolio
+#   ECR_REPOSITORY_URL      — e.g. 123456789012.dkr.ecr.us-east-1.amazonaws.com/portfolio
+#   EC2_HOST                — Elastic IP of the portfolio EC2 instance
+#   AWS_DEPLOY_ROLE_ARN     — IAM role ARN for OIDC ECR push
+#
+# Required GitHub Secrets:
+#   EC2_SSH_KEY             — private SSH key content for ubuntu@EC2_HOST
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: true
+
+permissions:
+  id-token: write    # required for AWS OIDC
+  contents: read
+
+jobs:
+  ci:
+    name: CI checks
+    uses: ./.github/workflows/ci.yml
+
+  build-and-push:
+    name: Build + push image
+    needs: ci
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Tags
+        id: meta
+        run: |
+          TAG="${GITHUB_SHA::7}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ vars.ECR_REPOSITORY_URL }}:latest
+            ${{ vars.ECR_REPOSITORY_URL }}:${{ steps.meta.outputs.tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Reload EC2
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH and reload systemd unit
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ vars.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          command_timeout: 10m
+          script: |
+            set -e
+            APP_NAME="${{ vars.APP_NAME }}"
+            APP_DIR="/opt/$APP_NAME"
+
+            echo "── Reloading $APP_NAME service ──"
+            sudo systemctl reload-or-restart "$APP_NAME"
+
+            echo "── Waiting for app to become healthy ──"
+            for i in $(seq 1 30); do
+              if curl -sf http://localhost/ > /dev/null 2>&1; then
+                echo "✓ App is healthy (image: ${{ needs.build-and-push.outputs.image_tag }})"
+                exit 0
+              fi
+              echo "  waiting... ($i/30)"
+              sleep 5
+            done
+
+            echo "✗ App did not become healthy within 2.5 minutes"
+            sudo systemctl status "$APP_NAME" --no-pager || true
+            sudo docker compose -f "$APP_DIR/docker-compose.yml" logs --tail=80 || true
+            exit 1

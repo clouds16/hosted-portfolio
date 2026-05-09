@@ -1,0 +1,23 @@
+# Copy this file to terraform.tfvars and fill in every value.
+# Never commit terraform.tfvars — it contains secrets.
+
+aws_region     = "us-east-1"
+app_name       = "portfolio"
+aws_account_id = "123456789012"
+
+# ── EC2 ───────────────────────────────────────────────────────────────────────
+instance_type  = "t3.micro"
+ssh_public_key = "ssh-ed25519 AAAA... you@machine"
+
+# Restrict to your home/office IP for security: ["1.2.3.4/32"]
+ssh_allowed_cidrs = ["0.0.0.0/0"]
+
+# ── DNS ───────────────────────────────────────────────────────────────────────
+# Terraform creates a fresh Route 53 hosted zone for this domain.
+# After apply, copy the four nameservers from the `nameservers` output into
+# your registrar's NS records.
+domain_name = "engineerhectoralvarez.com"
+
+# ── GitHub OIDC (deploy.yml assumes this role to push to ECR) ─────────────────
+github_org  = "clouds16"
+github_repo = "hosted-portfolio"

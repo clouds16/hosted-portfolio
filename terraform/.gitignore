@@ -1,0 +1,22 @@
+# Local state — contains resource IDs and possibly secrets
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# Local secrets — copy from terraform.tfvars.example, never commit
+terraform.tfvars
+*.auto.tfvars
+
+# Provider plugin cache (commit .terraform.lock.hcl — pin provider versions)
+.terraform/
+
+# Plan output
+*.tfplan
+crash.log
+crash.*.log
+
+# CLI override files (local-only)
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
