@@ -1,96 +1,137 @@
 import { useRef } from "react";
+import { Box, Flex, Heading, Stack, Text } from "@chakra-ui/react";
 import { motion, useInView } from "framer-motion";
 import { data } from "../data";
-import { SectionLabel } from "./Skills";
+import { filterByDiscipline, useDiscipline } from "../discipline";
+import { SectionLabel } from "./SectionLabel";
+
+const MotionBox = motion.create(Box);
 
 export function Experience() {
+  const { discipline } = useDiscipline();
   const ref = useRef(null);
-  const inView = useInView(ref, { once: true, margin: "-80px" });
+  const inView = useInView(ref, { once: false, margin: "-80px" });
+  const jobs = filterByDiscipline(data.experience, discipline);
 
   return (
-    <section id="experience" style={{ padding: "8rem 3rem", background: "var(--bg)" }}>
-      <div style={{ maxWidth: 900, margin: "0 auto" }}>
+    <Box as="section" id="experience" py={32} px={{ base: 6, md: 12 }} bg="bg">
+      <Box maxW="900px" mx="auto">
         <SectionLabel label="03" title="Experience" />
 
-        <div ref={ref} style={{ marginTop: "4rem", position: "relative" }}>
-          {/* vertical line */}
-          <motion.div
+        <Box ref={ref} mt={16} position="relative">
+          <MotionBox
             initial={{ scaleY: 0 }}
             animate={inView ? { scaleY: 1 } : {}}
             transition={{ duration: 1, ease: "easeInOut" }}
-            style={{
-              position: "absolute", left: 0, top: 0, bottom: 0,
-              width: 1, background: "var(--border2)",
-              transformOrigin: "top",
-            }}
+            position="absolute"
+            left={0}
+            top={0}
+            bottom={0}
+            w="1px"
+            bg="border.muted"
+            transformOrigin="top"
           />
 
-          <div style={{ paddingLeft: "3rem", display: "flex", flexDirection: "column", gap: "4rem" }}>
-            {data.experience.map((job, i) => (
-              <motion.div
-                key={job.company}
+          <Stack pl={12} gap={16}>
+            {jobs.map((job, i) => (
+              <MotionBox
+                key={`${discipline}-${job.company}`}
                 initial={{ opacity: 0, x: -30 }}
                 animate={inView ? { opacity: 1, x: 0 } : {}}
                 transition={{ delay: i * 0.2, duration: 0.6 }}
-                style={{ position: "relative" }}
+                position="relative"
               >
-                {/* dot on timeline */}
-                <div style={{
-                  position: "absolute", left: -38, top: 8,
-                  width: 9, height: 9, borderRadius: "50%",
-                  background: i === 0 ? "var(--accent)" : "var(--border2)",
-                  border: `2px solid ${i === 0 ? "var(--accent)" : "var(--text-dim)"}`,
-                  boxShadow: i === 0 ? "0 0 12px var(--accent)" : "none",
-                }} />
+                <Box
+                  position="absolute"
+                  left="-38px"
+                  top="8px"
+                  w="9px"
+                  h="9px"
+                  borderRadius="50%"
+                  bg={i === 0 ? "accent" : "border.muted"}
+                  borderWidth="2px"
+                  borderColor={i === 0 ? "accent" : "fg.dim"}
+                  boxShadow={i === 0 ? "0 0 12px var(--chakra-colors-accent)" : "none"}
+                />
 
-                <div style={{ marginBottom: "0.75rem" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "0.5rem" }}>
-                    <div>
-                      <h3 style={{
-                        fontFamily: "var(--sans)", fontSize: "1.3rem", fontWeight: 700,
-                        color: "var(--text)", letterSpacing: "-0.01em",
-                      }}>
-                        {job.role}
-                      </h3>
-                      <div style={{ fontFamily: "var(--mono)", fontSize: "0.8rem", color: "var(--accent)", marginTop: 4 }}>
-                        @ {job.company}
-                        <span style={{ color: "var(--text-dim)", marginLeft: 8 }}>// {job.location}</span>
-                      </div>
-                    </div>
-                    <span style={{
-                      fontFamily: "var(--mono)", fontSize: "0.68rem",
-                      color: "var(--text-muted)", letterSpacing: "0.08em",
-                      background: "var(--bg3)", border: "1px solid var(--border)",
-                      padding: "0.3rem 0.75rem",
-                    }}>
-                      {job.period}
-                    </span>
-                  </div>
-                </div>
+                <Flex justify="space-between" align="flex-start" wrap="wrap" gap={2} mb={3}>
+                  <Box>
+                    <Heading
+                      fontFamily="sans"
+                      fontSize="1.3rem"
+                      fontWeight={700}
+                      color="fg"
+                      letterSpacing="-0.01em"
+                    >
+                      {job.role}
+                    </Heading>
+                    <Text fontFamily="mono" fontSize="sm" color="accent" mt={1}>
+                      @{" "}
+                      {job.href ? (
+                        <a
+                          href={job.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            color: "var(--accent)",
+                            textDecoration: "underline",
+                            textDecorationStyle: "dotted",
+                            textUnderlineOffset: "3px",
+                            cursor: "none",
+                          }}
+                        >
+                          {job.company} ↗
+                        </a>
+                      ) : (
+                        job.company
+                      )}
+                      <Box as="span" color="fg.dim" ml={2}>
+                        // {job.location}
+                      </Box>
+                    </Text>
+                  </Box>
+                  <Text
+                    fontFamily="mono"
+                    fontSize="xs"
+                    color="fg.muted"
+                    letterSpacing="0.08em"
+                    bg="bg.muted"
+                    borderWidth="1px"
+                    borderColor="border.base"
+                    px={3}
+                    py={1}
+                  >
+                    {job.period}
+                  </Text>
+                </Flex>
 
-                <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+                <Stack as="ul" listStyleType="none" gap={2.5}>
                   {job.bullets.map((b, bi) => (
-                    <motion.li
+                    <MotionBox
+                      as="li"
                       key={bi}
                       initial={{ opacity: 0, x: -10 }}
                       animate={inView ? { opacity: 1, x: 0 } : {}}
                       transition={{ delay: i * 0.2 + bi * 0.07 + 0.3 }}
-                      style={{
-                        fontFamily: "var(--mono)", fontSize: "0.82rem",
-                        color: "var(--text-muted)", lineHeight: 1.7,
-                        display: "flex", gap: "0.75rem",
-                      }}
+                      fontFamily="mono"
+                      fontSize="sm"
+                      color="fg.muted"
+                      lineHeight={1.7}
+                      display="flex"
+                      gap={3}
                     >
-                      <span style={{ color: "var(--accent)", flexShrink: 0 }}>▸</span>
+                      <Box as="span" color="accent" flexShrink={0}>
+                        ▸
+                      </Box>
                       {b}
-                    </motion.li>
+                    </MotionBox>
                   ))}
-                </ul>
-              </motion.div>
+                </Stack>
+              </MotionBox>
             ))}
-          </div>
-        </div>
-      </div>
-    </section>
+          </Stack>
+        </Box>
+      </Box>
+    </Box>
   );
 }

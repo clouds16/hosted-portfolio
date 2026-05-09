@@ -19,45 +19,37 @@ output "ecr_repository_url" {
 }
 
 output "github_deploy_role_arn" {
-  description = "IAM role ARN that GitHub Actions assumes via OIDC to push images to ECR"
-  value       = aws_iam_role.github_deploy.arn
+  description = "IAM role ARN for GitHub Actions OIDC. Empty when no pipeline is provisioned."
+  value       = try(aws_iam_role.github_deploy[0].arn, "")
 }
 
-output "nameservers" {
-  description = "Route 53 nameservers — copy these into your domain registrar's NS records"
-  value       = aws_route53_zone.main.name_servers
+output "hosted_zone_id" {
+  description = "Route 53 hosted zone ID for the domain (looked up from your account)"
+  value       = data.aws_route53_zone.main.zone_id
 }
 
 output "next_steps" {
-  description = "Post-apply checklist"
-  sensitive   = true
+  description = "Post-apply checklist for a manual (no-CI) deploy"
   value       = <<-EOT
-    ✓ Portfolio infrastructure is up. Next steps:
+    ✓ Infra is up. To deploy the site (manual flow):
 
-    1. DNS — at your domain registrar for ${var.domain_name}, replace the
-       nameservers with the four from the `nameservers` output. Propagation
-       usually takes a few minutes to a few hours.
+    1. Build + push the image to ECR (run from the project root):
+         aws ecr get-login-password --region ${var.aws_region} \
+           | docker login --username AWS --password-stdin ${aws_ecr_repository.app.repository_url}
+         docker build -t ${var.app_name} .
+         docker tag ${var.app_name}:latest ${aws_ecr_repository.app.repository_url}:latest
+         docker push ${aws_ecr_repository.app.repository_url}:latest
 
-    2. Add GitHub repository variables and secrets:
-       (Repository → Settings → Secrets and variables → Actions)
+    2. SSH in and start the systemd unit (it pulls + runs the image):
+         ssh ubuntu@${aws_eip.app.public_ip}
+         sudo systemctl restart ${var.app_name}
+         sudo systemctl status ${var.app_name}
 
-       Variables:
-         AWS_REGION              = ${var.aws_region}
-         AWS_ACCOUNT_ID          = ${var.aws_account_id}
-         APP_NAME                = ${var.app_name}
-         ECR_REPOSITORY_URL      = ${aws_ecr_repository.app.repository_url}
-         EC2_HOST                = ${aws_eip.app.public_ip}
-         AWS_DEPLOY_ROLE_ARN     = ${aws_iam_role.github_deploy.arn}
+    3. After DNS resolves to ${aws_eip.app.public_ip}, get HTTPS:
+         sudo /opt/${var.app_name}/scripts/setup-ssl.sh ${var.domain_name}
 
-       Secrets:
-         EC2_SSH_KEY             = (contents of your private SSH key)
-
-    3. Trigger first deploy:
-       (Actions → Deploy → Run workflow on `main`)
-       This builds the image, pushes to ECR, SSHes to EC2, pulls + restarts.
-
-    4. Optional HTTPS (after DNS propagates and an HTTP deploy succeeds):
-       ssh ubuntu@${aws_eip.app.public_ip}
-       sudo /opt/${var.app_name}/scripts/setup-ssl.sh ${var.domain_name}
+    Site will be live at:
+      http://${var.domain_name}
+      https://${var.domain_name}    (after step 3)
   EOT
 }

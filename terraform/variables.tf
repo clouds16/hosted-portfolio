@@ -48,12 +48,16 @@ variable "domain_name" {
 }
 
 # ─── GitHub Actions OIDC (for ECR push from CI) ───────────────────────────────
+# Leave these empty to skip provisioning the OIDC role. Set them later when
+# you're ready to wire up CI/CD.
 variable "github_org" {
-  description = "GitHub username or organization name (for OIDC trust)"
+  description = "GitHub username or organization name (for OIDC trust). Empty = skip OIDC role."
   type        = string
+  default     = ""
 }
 
 variable "github_repo" {
-  description = "GitHub repository name without org prefix (for OIDC trust)"
+  description = "GitHub repository name without org prefix. Empty = skip OIDC role."
   type        = string
+  default     = ""
 }

@@ -1,15 +1,14 @@
-# ─── Route 53 Hosted Zone ────────────────────────────────────────────────────
-# Creates a fresh zone for the domain. After apply, copy the NS records from
-# the `nameservers` output to your domain registrar. DNS propagation takes
-# anywhere from a few minutes to 48 hours.
-resource "aws_route53_zone" "main" {
-  name = var.domain_name
-  tags = { Name = var.domain_name }
+# ─── Route 53 — uses your existing hosted zone ───────────────────────────────
+# Domain is registered + zoned in this AWS account already, so look up the zone
+# instead of creating a new one (which would require re-pointing nameservers).
+data "aws_route53_zone" "main" {
+  name         = var.domain_name
+  private_zone = false
 }
 
 # Apex: engineerhectoralvarez.com → EIP
 resource "aws_route53_record" "apex" {
-  zone_id = aws_route53_zone.main.zone_id
+  zone_id = data.aws_route53_zone.main.zone_id
   name    = var.domain_name
   type    = "A"
   ttl     = 300
@@ -18,7 +17,7 @@ resource "aws_route53_record" "apex" {
 
 # www.engineerhectoralvarez.com → EIP
 resource "aws_route53_record" "www" {
-  zone_id = aws_route53_zone.main.zone_id
+  zone_id = data.aws_route53_zone.main.zone_id
   name    = "www.${var.domain_name}"
   type    = "A"
   ttl     = 300

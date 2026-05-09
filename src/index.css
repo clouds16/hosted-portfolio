@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Syne:wght@400..800&display=swap');
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
+/* Legacy CSS variables — used by the custom Cursor component which renders
+   outside the Chakra style scope. Keep in sync with src/theme.ts. */
 :root {
   --bg: #0a0a0f;
   --bg2: #0f0f1a;
@@ -14,23 +14,182 @@
   --text: #e2e8f0;
   --text-muted: #64748b;
   --text-dim: #334155;
-  --mono: 'JetBrains Mono', monospace;
-  --sans: 'Syne', sans-serif;
+  --matrix-display: block;
 }
 
-html { scroll-behavior: smooth; }
-
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--mono);
-  overflow-x: hidden;
-  cursor: none;
+@media (max-width: 900px) {
+  :root { --matrix-display: none; }
 }
 
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: var(--bg); }
-::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+/* ─── Ghost-in-the-Shell idle glitch ───────────────────────────────────────── */
+/* Triggered by IdleGlitch.tsx via body[data-glitching]. */
 
-::selection { background: var(--accent); color: var(--bg); }
+body[data-glitching="true"],
+body[data-glitching="long"] {
+  text-shadow:
+    1.4px 0 rgba(255, 0, 80, 0.55),
+    -1.4px 0 rgba(0, 212, 255, 0.55);
+  animation: ghost-glitch-shake 0.32s steps(8) both;
+}
+
+body[data-glitching="long"] {
+  animation-duration: 0.52s;
+}
+
+body[data-glitching="true"]::before,
+body[data-glitching="long"]::before {
+  content: "";
+  position: fixed;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 8888;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, var(--accent) 20%, var(--accent2) 50%, var(--accent) 80%, transparent);
+  filter: blur(0.6px);
+  animation: ghost-glitch-tear 0.32s steps(6) both;
+}
+
+body[data-glitching="long"]::before {
+  animation-duration: 0.52s;
+}
+
+body[data-glitching="true"]::after,
+body[data-glitching="long"]::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 8887;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    180deg,
+    rgba(0, 255, 136, 0.045) 0px,
+    rgba(0, 255, 136, 0.045) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  mix-blend-mode: screen;
+  animation: ghost-glitch-scan 0.32s linear both;
+}
+
+body[data-glitching="long"]::after {
+  animation-duration: 0.52s;
+}
+
+@keyframes ghost-glitch-shake {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  20% { transform: translate3d(-2px, 1px, 0) skewX(-0.6deg); }
+  40% { transform: translate3d(2px, -1px, 0) skewX(0.6deg); }
+  60% { transform: translate3d(-1px, 2px, 0); }
+  80% { transform: translate3d(1px, -2px, 0); }
+}
+
+@keyframes ghost-glitch-tear {
+  0%   { top: 12%; opacity: 0; }
+  20%  { top: 30%; opacity: 1; }
+  60%  { top: 65%; opacity: 1; }
+  100% { top: 92%; opacity: 0; }
+}
+
+@keyframes ghost-glitch-scan {
+  0%, 100% { opacity: 0; }
+  30%, 70% { opacity: 1; }
+}
+
+@keyframes terminal-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+@keyframes mech-gear-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ─── Hack mode visual effects ─────────────────────────────────────────────── */
+
+@keyframes hack-edge-pulse {
+  0%, 100% { box-shadow: inset 0 0 50px rgba(0, 255, 136, 0.10); }
+  50%      { box-shadow: inset 0 0 120px rgba(0, 255, 136, 0.22); }
+}
+
+@keyframes hack-boot-fade {
+  0%   { opacity: 0; }
+  4%   { opacity: 1; }
+  94%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes hack-boot-line {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes hack-progress {
+  from { width: 0%; }
+  to   { width: 100%; }
+}
+
+@keyframes hack-shutdown-fade {
+  0%   { opacity: 0; }
+  10%  { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes hack-shutdown-line {
+  from { opacity: 0; transform: translateX(8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes hack-shutdown-drain {
+  from { width: 100%; }
+  to   { width: 0%; }
+}
+
+@keyframes hack-shutdown-farewell {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* CRT power-off: viewport collapses to a horizontal line, then a dot. */
+@keyframes hack-crt-collapse {
+  0%, 70%   { transform: scale(1, 1); opacity: 0; }
+  80%       { transform: scale(1, 1); opacity: 1; }
+  90%       { transform: scale(1, 0.005); opacity: 1; }
+  96%       { transform: scale(0.05, 0.005); opacity: 1; }
+  100%      { transform: scale(0, 0); opacity: 0; }
+}
+
+/* Hack-mode hover effects — only active when body[data-hack="true"]. */
+body[data-hack="true"] a:hover,
+body[data-hack="true"] button:hover,
+body[data-hack="true"] [role="tab"]:hover,
+body[data-hack="true"] [data-hack-glow="text"]:hover {
+  text-shadow:
+    0 0 14px rgba(0, 255, 136, 0.85),
+    2px 0 rgba(255, 0, 80, 0.55),
+    -2px 0 rgba(0, 212, 255, 0.55);
+  filter: brightness(1.25);
+}
+
+body[data-hack="true"] [data-hack-glow="card"] {
+  transition: box-shadow 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+body[data-hack="true"] [data-hack-glow="card"]:hover {
+  border-color: var(--accent) !important;
+  box-shadow:
+    0 0 28px rgba(0, 255, 136, 0.45),
+    inset 0 0 14px rgba(0, 255, 136, 0.10);
+  transform: translateY(-3px);
+}
+
+body[data-hack="true"] [data-hack-glow="pill"] {
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+body[data-hack="true"] [data-hack-glow="pill"]:hover {
+  background: rgba(0, 255, 136, 0.18) !important;
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+  text-shadow: 0 0 8px rgba(0, 255, 136, 0.7);
+}

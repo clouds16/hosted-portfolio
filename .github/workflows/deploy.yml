@@ -14,9 +14,15 @@
 
 name: Deploy
 
+# Auto-deploy is OFF for now — manual deploys via Terraform + docker push.
+# When you're ready to wire up CI/CD:
+#   1. Set the GitHub Actions vars/secrets listed at the top of this file
+#   2. Set github_org/github_repo in your tfvars and re-apply Terraform
+#      (provisions the OIDC role this workflow assumes)
+#   3. Uncomment the `push` trigger below
 on:
-  push:
-    branches: [main]
+  # push:
+  #   branches: [main]
   workflow_dispatch:
 
 concurrency:

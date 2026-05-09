@@ -54,7 +54,15 @@ resource "aws_iam_instance_profile" "ec2" {
 }
 
 # ─── GitHub Actions OIDC role (for ECR push from CI) ─────────────────────────
+# Only created when github_org + github_repo are set in tfvars. With both empty
+# (the default), the OIDC infra is skipped — useful when deploying manually
+# without a pipeline.
+locals {
+  github_oidc_enabled = var.github_org != "" && var.github_repo != ""
+}
+
 resource "aws_iam_openid_connect_provider" "github" {
+  count          = local.github_oidc_enabled ? 1 : 0
   url            = "https://token.actions.githubusercontent.com"
   client_id_list = ["sts.amazonaws.com"]
   # Thumbprint for token.actions.githubusercontent.com (Amazon's published value).
@@ -64,13 +72,14 @@ resource "aws_iam_openid_connect_provider" "github" {
 }
 
 resource "aws_iam_role" "github_deploy" {
-  name = "${var.app_name}-github-deploy"
+  count = local.github_oidc_enabled ? 1 : 0
+  name  = "${var.app_name}-github-deploy"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
       Effect    = "Allow"
-      Principal = { Federated = aws_iam_openid_connect_provider.github.arn }
+      Principal = { Federated = aws_iam_openid_connect_provider.github[0].arn }
       Action    = "sts:AssumeRoleWithWebIdentity"
       Condition = {
         StringEquals = {
@@ -87,8 +96,9 @@ resource "aws_iam_role" "github_deploy" {
 }
 
 resource "aws_iam_role_policy" "github_deploy" {
-  name = "${var.app_name}-github-deploy"
-  role = aws_iam_role.github_deploy.id
+  count = local.github_oidc_enabled ? 1 : 0
+  name  = "${var.app_name}-github-deploy"
+  role  = aws_iam_role.github_deploy[0].id
 
   policy = jsonencode({
     Version = "2012-10-17"
