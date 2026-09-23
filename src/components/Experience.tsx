@@ -4,8 +4,16 @@ import { motion, useInView } from "framer-motion";
 import { data } from "../data";
 import { filterByDiscipline, useDiscipline } from "../discipline";
 import { SectionLabel } from "./SectionLabel";
+import type { Experience as ExperienceEntry } from "../types";
+import type { DisciplineFilter } from "../types";
 
 const MotionBox = motion.create(Box);
+
+function resolveBullets(job: ExperienceEntry, discipline: DisciplineFilter): string[] {
+  if (Array.isArray(job.bullets)) return job.bullets;
+  if (discipline === "all") return job.bullets.all;
+  return job.bullets[discipline] ?? job.bullets.all;
+}
 
 export function Experience() {
   const { discipline } = useDiscipline();
@@ -106,7 +114,7 @@ export function Experience() {
                 </Flex>
 
                 <Stack as="ul" listStyleType="none" gap={2.5}>
-                  {job.bullets.map((b, bi) => (
+                  {resolveBullets(job, discipline).map((b, bi) => (
                     <MotionBox
                       as="li"
                       key={bi}

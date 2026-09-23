@@ -12,7 +12,12 @@ export type Experience = {
   role: string;
   period: string;
   location: string;
-  bullets: string[];
+  /** Use a plain string[] when the bullets don't need to vary by discipline.
+   *  Use { all, software?, mechanical? } when a role spans both disciplines
+   *  and the emphasis should shift depending on which filter is active —
+   *  `all` is shown by default and as the fallback for whichever variant
+   *  isn't specified. */
+  bullets: string[] | { all: string[]; software?: string[]; mechanical?: string[] };
   disciplines: Discipline[];
   href?: string;
 };
