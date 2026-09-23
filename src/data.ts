@@ -70,6 +70,21 @@ export const data: SiteData = {
 
   experience: [
     {
+      company: "Chameleon Engineering",
+      role: "Project Manager & Software Architect",
+      period: "May 2026 — Present",
+      location: "Santa Maria, CA",
+      href: "https://chameleonengineering.com",
+      bullets: [
+        "Manage telecom structural engineering projects end-to-end — from CAD modeling and site/zoning documentation through fabrication, delivery, and closeout.",
+        "Own QA on welding and fabrication work, verifying builds against structural specs and drawings before shipment.",
+        "Interface directly with clients, welding and fabrication crews, and shipping logistics partners to keep multi-week fabrication schedules on deadline.",
+        "Architected and built the company's internal project management platform (React Router v7, TypeScript, Prisma, PostgreSQL) tracking projects, milestones, tasks, work orders, and fabrication status company-wide.",
+        "Designed the data model, staff/client authorization boundaries, and S3-backed document and photo storage powering the platform now used daily across project management, fabrication, and client-facing teams.",
+      ],
+      disciplines: ["software", "mechanical"],
+    },
+    {
       company: "SimpleAppBuilders",
       role: "Founder & Lead Engineer",
       period: "2025 — Present",

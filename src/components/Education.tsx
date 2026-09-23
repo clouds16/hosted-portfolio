@@ -3,6 +3,7 @@ import { Box, Flex, Heading, Stack, Text } from "@chakra-ui/react";
 import { motion, useInView } from "framer-motion";
 import { GraduationCap } from "lucide-react";
 import { data } from "../data";
+import { playHoverPing } from "../lib/hackSounds";
 import { SectionLabel } from "./SectionLabel";
 
 const MotionBox = motion.create(Box);
@@ -30,6 +31,7 @@ export function Education() {
               position="relative"
               overflow="hidden"
               data-hack-glow="card"
+              onMouseEnter={playHoverPing}
             >
               <Box position="absolute" top={0} left={0} w="100%" h="2px" bg="accent" opacity={0.7} />
 

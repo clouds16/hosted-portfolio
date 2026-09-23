@@ -7,7 +7,13 @@ import { data } from "../data";
 import { useDiscipline } from "../discipline";
 import type { DisciplineFilter } from "../types";
 import { useTypewriter } from "../hooks/useTypewriter";
+import { playHoverPing, playSoftKey } from "../lib/hackSounds";
 import { SectionLabel } from "./SectionLabel";
+
+const KEYSOUND_PROBABILITY = 0.5;
+const onKeyTick = () => {
+  if (Math.random() < KEYSOUND_PROBABILITY) playSoftKey();
+};
 
 const MotionBox = motion.create(Box);
 
@@ -89,6 +95,7 @@ export function Contact() {
                   animate={inView ? { opacity: 1, y: 0 } : {}}
                   transition={{ delay: i * 0.1 + 0.2 }}
                   whileHover={{ x: 6 }}
+                  onMouseEnter={playHoverPing}
                   style={{ textDecoration: "none", cursor: "none" }}
                 >
                   <Flex
@@ -99,6 +106,8 @@ export function Contact() {
                     bg="bg.muted"
                     borderWidth="1px"
                     borderColor="border.base"
+                    overflow="hidden"
+                    position="relative"
                     style={{ transition: "border-color 0.2s" }}
                     _hover={{ borderColor: "accent" }}
                     data-hack-glow="card"
@@ -240,7 +249,7 @@ function TerminalChrome() {
 }
 
 function TerminalRow({ line, delay, speed }: { line: TerminalLine; delay: number; speed: number }) {
-  const { displayed } = useTypewriter(line.text, speed, delay);
+  const { displayed } = useTypewriter(line.text, speed, delay, onKeyTick);
   return (
     <Box minH="1.2em" lineHeight={1.5}>
       {line.prefix && (
@@ -427,7 +436,7 @@ function MetaCell({
   borderRight?: boolean;
   borderTop?: boolean;
 }) {
-  const { displayed } = useTypewriter(value, MECH_TYPE_SPEED, delay);
+  const { displayed } = useTypewriter(value, MECH_TYPE_SPEED, delay, onKeyTick);
   return (
     <Box
       px={3}
@@ -447,7 +456,7 @@ function MetaCell({
 }
 
 function NoteLine({ text, delay }: { text: string; delay: number }) {
-  const { displayed } = useTypewriter(text, MECH_TYPE_SPEED, delay);
+  const { displayed } = useTypewriter(text, MECH_TYPE_SPEED, delay, onKeyTick);
   return (
     <Flex gap={2} fontSize="0.72rem" color="fg.muted" lineHeight={1.6}>
       <Box color="accent" flexShrink={0}>
@@ -459,7 +468,7 @@ function NoteLine({ text, delay }: { text: string; delay: number }) {
 }
 
 function BomRow({ index, description, delay }: { index: number; description: string; delay: number }) {
-  const { displayed } = useTypewriter(description, MECH_TYPE_SPEED, delay);
+  const { displayed } = useTypewriter(description, MECH_TYPE_SPEED, delay, onKeyTick);
   return (
     <Grid templateColumns="42px 1fr 1fr" py={1} fontSize="0.7rem" alignItems="center">
       <Box color="fg.dim" letterSpacing="0.08em">{String(index).padStart(2, "0")}</Box>

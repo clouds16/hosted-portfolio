@@ -5,6 +5,7 @@ import { ExternalLink, Image as ImageIcon } from "lucide-react";
 import type { Project } from "../types";
 import { data } from "../data";
 import { filterByDiscipline, useDiscipline } from "../discipline";
+import { playHoverPing } from "../lib/hackSounds";
 import { SectionLabel } from "./SectionLabel";
 
 const MotionBox = motion.create(Box);
@@ -42,6 +43,7 @@ export function Projects() {
               overflow="hidden"
               cursor="none"
               data-hack-glow="card"
+              onMouseEnter={playHoverPing}
             >
               <Box position="absolute" top={0} left={0} w="100%" h="2px" bg={project.color} opacity={0.7} zIndex={2} />
 

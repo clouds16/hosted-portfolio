@@ -1,13 +1,28 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export type TypewriterResult = {
   displayed: string;
   done: boolean;
 };
 
-export function useTypewriter(text: string, speed = 45, delay = 0): TypewriterResult {
+/**
+ * Reveals `text` one character at a time after `delay` ms.
+ *
+ * Optional `onTick` is called once per character — useful for playing a sound
+ * effect on each keystroke. Stored in a ref so changing the callback between
+ * renders doesn't restart typing.
+ */
+export function useTypewriter(
+  text: string,
+  speed = 45,
+  delay = 0,
+  onTick?: () => void,
+): TypewriterResult {
   const [displayed, setDisplayed] = useState("");
   const [done, setDone] = useState(false);
+
+  const onTickRef = useRef(onTick);
+  onTickRef.current = onTick;
 
   useEffect(() => {
     setDisplayed("");
@@ -20,6 +35,7 @@ export function useTypewriter(text: string, speed = 45, delay = 0): TypewriterRe
       interval = window.setInterval(() => {
         i++;
         setDisplayed(text.slice(0, i));
+        onTickRef.current?.();
         if (i >= text.length) {
           window.clearInterval(interval);
           setDone(true);

@@ -1,33 +1,29 @@
-# ─── Portfolio Site Terraform ─────────────────────────────────────────────────
-# Single EC2 instance hosting a static SPA via Docker + nginx, fronted by an
-# Elastic IP and Route 53. Image deployed from ECR by GitHub Actions.
+# ─── Portfolio Site Terraform (S3 + CloudFront tier) ──────────────────────────
+# Static SPA hosted on S3, fronted globally by CloudFront with HTTPS via ACM.
 #
-# ── Cost estimate (us-east-1, on-demand) ──────────────────────────────────────
-#   t3.micro EC2:    ~$8/mo  (free-tier eligible for first 12 months)
-#   Elastic IP:      free while attached
-#   8 GB gp3 EBS:    ~$0.80/mo
-#   ECR:             ~$0.10/mo (10-image lifecycle policy)
-#   Route 53 zone:   $0.50/mo
-#   Total:           ~$9/mo (or ~$1/mo on free tier)
+# ── Cost estimate (us-east-1) ─────────────────────────────────────────────────
+#   S3 storage (~5 MB build):          ~$0.001/mo
+#   S3 GET requests (low traffic):     ~$0.001/mo
+#   CloudFront egress:                 1 TB/mo always-free → $0
+#   CloudFront requests:               10M HTTPS reqs/mo always-free → $0
+#   ACM certificate:                   free
+#   Route 53 alias records:            free (no per-query charge for AWS aliases)
+#   ──────────────────────────────────────
+#   Total:                             ~$0.50/mo (essentially S3 + invalidations)
 #
 # ── What this creates ─────────────────────────────────────────────────────────
-#   VPC + public subnet — isolated network
-#   EC2 t3.micro        — runs the docker container (nginx + built SPA)
-#   Elastic IP          — stable public IP for DNS
-#   ECR                 — private container registry
-#   Security group      — ports 22, 80, 443 in; all out
-#   IAM role            — instance pulls image from ECR
-#   GitHub OIDC role    — CI assumes this to push to ECR (no long-lived keys)
-#   Route 53 A records  — apex + www → Elastic IP (when hosted_zone_id is set)
-#   CloudWatch alarm    — auto-recovery on hardware failure (free)
+#   S3 bucket           — private, holds the Vite `dist/` output
+#   Origin Access Ctrl  — locks the bucket so only CloudFront can read it
+#   CloudFront dist     — global edge caching, HTTPS termination, SPA fallback
+#   ACM cert            — validated via Route 53 DNS (must live in us-east-1)
+#   Route 53 aliases    — apex + www → CloudFront
 #
-# ── How to use ────────────────────────────────────────────────────────────────
-#   1. Copy terraform.tfvars.example → terraform.tfvars and fill in values.
-#   2. terraform init
-#   3. terraform plan && terraform apply
-#   4. Set GitHub Actions vars/secrets from outputs (see `next_steps` output).
-#   5. Push to main — deploy.yml builds, pushes to ECR, reloads on EC2.
-#   6. Optional HTTPS: sudo /opt/${app_name}/scripts/setup-ssl.sh <domain>
+# ── How to deploy a new version ───────────────────────────────────────────────
+#   npm run build
+#   aws s3 sync dist/ s3://$(terraform -chdir=terraform output -raw bucket_name)/ --delete
+#   aws cloudfront create-invalidation \
+#     --distribution-id $(terraform -chdir=terraform output -raw distribution_id) \
+#     --paths "/*"
 
 terraform {
   required_version = ">= 1.5.0"
@@ -37,11 +33,29 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.5"
+    }
   }
 }
 
 provider "aws" {
   region = var.aws_region
+
+  default_tags {
+    tags = {
+      Project   = var.app_name
+      ManagedBy = "Terraform"
+    }
+  }
+}
+
+# CloudFront-bound certificates MUST live in us-east-1 regardless of where the
+# rest of the infra runs. This aliased provider exists for that one purpose.
+provider "aws" {
+  alias  = "us_east_1"
+  region = "us-east-1"
 
   default_tags {
     tags = {

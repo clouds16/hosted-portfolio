@@ -1,25 +1,32 @@
-# ─── Route 53 — uses your existing hosted zone ───────────────────────────────
-# Domain is registered + zoned in this AWS account already, so look up the zone
-# instead of creating a new one (which would require re-pointing nameservers).
+# ─── Route 53 — alias records to CloudFront ──────────────────────────────────
+# Looks up the existing zone (we don't create one). Apex + www both alias to
+# the distribution. Aliases are free of per-query charges for AWS-managed
+# resources.
 data "aws_route53_zone" "main" {
   name         = var.domain_name
   private_zone = false
 }
 
-# Apex: engineerhectoralvarez.com → EIP
 resource "aws_route53_record" "apex" {
   zone_id = data.aws_route53_zone.main.zone_id
   name    = var.domain_name
   type    = "A"
-  ttl     = 300
-  records = [aws_eip.app.public_ip]
+
+  alias {
+    name                   = aws_cloudfront_distribution.site.domain_name
+    zone_id                = aws_cloudfront_distribution.site.hosted_zone_id
+    evaluate_target_health = false
+  }
 }
 
-# www.engineerhectoralvarez.com → EIP
 resource "aws_route53_record" "www" {
   zone_id = data.aws_route53_zone.main.zone_id
   name    = "www.${var.domain_name}"
   type    = "A"
-  ttl     = 300
-  records = [aws_eip.app.public_ip]
+
+  alias {
+    name                   = aws_cloudfront_distribution.site.domain_name
+    zone_id                = aws_cloudfront_distribution.site.hosted_zone_id
+    evaluate_target_health = false
+  }
 }

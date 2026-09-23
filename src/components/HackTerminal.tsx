@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { Box, Flex, Text } from "@chakra-ui/react";
+import { playAiBleep, playKeypress, playSoftKey } from "../lib/hackSounds";
+import { useTypewriter } from "../hooks/useTypewriter";
 
 type Line =
   | { kind: "system"; text: string }
@@ -120,7 +122,11 @@ export function HackTerminal({ onClose }: { onClose: () => void }) {
           <input
             ref={inputRef}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => {
+              const next = e.target.value;
+              if (next.length > input.length) playKeypress();
+              setInput(next);
+            }}
             autoFocus
             spellCheck={false}
             autoCorrect="off"
@@ -205,22 +211,41 @@ function TerminalRow({ line }: { line: Line }) {
       </Box>
     );
   }
+  return <StreamRow line={line} />;
+}
+
+const STREAM_SPEED_MS = 30;
+const KEYSOUND_PROBABILITY = 0.5;
+
+/** Streams an AI/system line in char-by-char, plays a soft keystroke on each
+ *  reveal, and a two-note bleep when typing starts. */
+function StreamRow({ line }: { line: Exclude<Line, { kind: "user" }> }) {
+  const onTick = useCallback(() => {
+    if (Math.random() < KEYSOUND_PROBABILITY) playSoftKey();
+  }, []);
+  const { displayed } = useTypewriter(line.text, STREAM_SPEED_MS, 0, onTick);
+
+  // Play the AI bleep once when this row mounts.
+  useEffect(() => {
+    if (line.kind === "ai") playAiBleep();
+    // We deliberately fire only on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   if (line.kind === "system") {
     return (
-      <Box color="fg.dim">
-        <Box as="span" mr={2}>
-          [system]
-        </Box>
-        {line.text}
+      <Box color="fg.dim" minH="1.2em">
+        <Box as="span" mr={2}>[system]</Box>
+        {displayed}
       </Box>
     );
   }
   return (
-    <Box color="accent.cyan" style={{ textShadow: "0 0 6px rgba(0, 212, 255, 0.4)" }}>
+    <Box color="accent.cyan" style={{ textShadow: "0 0 6px rgba(0, 212, 255, 0.4)" }} minH="1.2em">
       <Box as="span" mr={2} color="accent">
         ⌬
       </Box>
-      {line.text}
+      {displayed}
     </Box>
   );
 }

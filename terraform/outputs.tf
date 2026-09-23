@@ -1,55 +1,29 @@
-output "elastic_ip" {
-  description = "EC2 Elastic IP — point your DNS A records here"
-  value       = aws_eip.app.public_ip
+output "bucket_name" {
+  description = "S3 bucket holding the site"
+  value       = aws_s3_bucket.site.id
 }
 
-output "ssh_command" {
-  description = "SSH into the instance"
-  value       = "ssh ubuntu@${aws_eip.app.public_ip}"
+output "distribution_id" {
+  description = "CloudFront distribution ID — use for cache invalidations"
+  value       = aws_cloudfront_distribution.site.id
 }
 
-output "instance_id" {
-  description = "EC2 instance ID"
-  value       = aws_instance.app.id
+output "distribution_domain" {
+  description = "CloudFront-assigned domain (you can hit this directly)"
+  value       = aws_cloudfront_distribution.site.domain_name
 }
 
-output "ecr_repository_url" {
-  description = "ECR repository URL — set as ECR_REPOSITORY_URL in deploy workflow"
-  value       = aws_ecr_repository.app.repository_url
+output "site_url" {
+  description = "Production URL"
+  value       = "https://${var.domain_name}"
 }
 
-output "github_deploy_role_arn" {
-  description = "IAM role ARN for GitHub Actions OIDC. Empty when no pipeline is provisioned."
-  value       = try(aws_iam_role.github_deploy[0].arn, "")
-}
-
-output "hosted_zone_id" {
-  description = "Route 53 hosted zone ID for the domain (looked up from your account)"
-  value       = data.aws_route53_zone.main.zone_id
-}
-
-output "next_steps" {
-  description = "Post-apply checklist for a manual (no-CI) deploy"
+output "deploy_command" {
+  description = "Copy/paste to deploy a new build"
   value       = <<-EOT
-    ✓ Infra is up. To deploy the site (manual flow):
-
-    1. Build + push the image to ECR (run from the project root):
-         aws ecr get-login-password --region ${var.aws_region} \
-           | docker login --username AWS --password-stdin ${aws_ecr_repository.app.repository_url}
-         docker build -t ${var.app_name} .
-         docker tag ${var.app_name}:latest ${aws_ecr_repository.app.repository_url}:latest
-         docker push ${aws_ecr_repository.app.repository_url}:latest
-
-    2. SSH in and start the systemd unit (it pulls + runs the image):
-         ssh ubuntu@${aws_eip.app.public_ip}
-         sudo systemctl restart ${var.app_name}
-         sudo systemctl status ${var.app_name}
-
-    3. After DNS resolves to ${aws_eip.app.public_ip}, get HTTPS:
-         sudo /opt/${var.app_name}/scripts/setup-ssl.sh ${var.domain_name}
-
-    Site will be live at:
-      http://${var.domain_name}
-      https://${var.domain_name}    (after step 3)
+    npm run build
+    aws s3 sync dist/ s3://${aws_s3_bucket.site.id}/ --delete
+    aws cloudfront create-invalidation \
+      --distribution-id ${aws_cloudfront_distribution.site.id} --paths "/*"
   EOT
 }

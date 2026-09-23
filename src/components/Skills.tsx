@@ -3,6 +3,7 @@ import { Box, Flex, Grid, Text } from "@chakra-ui/react";
 import { motion, useInView } from "framer-motion";
 import { data } from "../data";
 import { filterByDiscipline, useDiscipline } from "../discipline";
+import { playHoverPing } from "../lib/hackSounds";
 import { SectionLabel } from "./SectionLabel";
 
 const MotionBox = motion.create(Box);
@@ -39,6 +40,7 @@ export function Skills() {
               position="relative"
               overflow="hidden"
               data-hack-glow="card"
+              onMouseEnter={playHoverPing}
             >
               <Box
                 position="absolute"

@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { playGlitch } from "../lib/hackSounds";
 
 const IDLE_MS = 12_000;
 const NEXT_GLITCH_MIN_MS = 5_000;
@@ -39,6 +40,7 @@ export function IdleGlitch() {
       const duration = isLong ? GLITCH_DURATION_MS_LONG : GLITCH_DURATION_MS;
 
       document.body.dataset.glitching = isLong ? "long" : "true";
+      playGlitch();
       window.clearTimeout(revertTimer);
       revertTimer = window.setTimeout(() => {
         delete document.body.dataset.glitching;

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Box, Flex, Stack, Text } from "@chakra-ui/react";
 import { useTypewriter } from "../hooks/useTypewriter";
+import { playLogTick, playShutdownTick } from "../lib/hackSounds";
 
 /**
  * Visual effects that activate together when "Hack" mode is on:
@@ -277,6 +278,12 @@ function ProgressPercent() {
 function BootLine({ line, delay }: { line: LogLine; delay: number }) {
   const { displayed, done } = useTypewriter(line.msg, TYPE_SPEED, delay);
 
+  // Fire a quick "data" click when this line begins typing.
+  useEffect(() => {
+    const t = window.setTimeout(playLogTick, delay);
+    return () => window.clearTimeout(t);
+  }, [delay]);
+
   const tagColor =
     line.level === "warn"
       ? "var(--accent3)"
@@ -442,6 +449,11 @@ export function PowerDownFlash() {
 }
 
 function ShutdownLine({ line, delay }: { line: LogLine; delay: number }) {
+  useEffect(() => {
+    const t = window.setTimeout(playShutdownTick, delay);
+    return () => window.clearTimeout(t);
+  }, [delay]);
+
   const tagColor =
     line.level === "warn"
       ? "var(--accent3)"

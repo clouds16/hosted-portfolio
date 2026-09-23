@@ -8,7 +8,9 @@ const FONT_SIZE = 14;
 const FADE_ALPHA = 0.06; // higher = shorter trails
 const BASE_SPEED = 0.5; // grid cells per frame (slower than before)
 const SCROLL_BOOST = 1.6; // multiplier while user is scrolling
-const TARGET_OPACITY = 0.5; // peak opacity (user opted in via the Curious? toggle)
+const TARGET_OPACITY = 0.5; // peak opacity past the hero
+const HERO_FADE_START = 0.55; // begin fading in at 55% of viewport height
+const HERO_FADE_END = 0.95; // fully visible at 95% viewport height
 
 /**
  * Two fixed canvases — one on each side of the viewport — running the classic
@@ -55,7 +57,16 @@ function RainStrip({ side }: { side: "left" | "right" }) {
       scrollTimer = window.setTimeout(() => {
         speedMul = 1;
       }, 250);
+      // Hide while in the hero (scrollY ≈ 0); fade in as it scrolls off.
+      const h = window.innerHeight;
+      const y = window.scrollY;
+      const progress = Math.max(
+        0,
+        Math.min(1, (y - h * HERO_FADE_START) / (h * (HERO_FADE_END - HERO_FADE_START))),
+      );
+      canvas.style.opacity = String(progress * TARGET_OPACITY);
     };
+    onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
 
     let raf = 0;
@@ -111,8 +122,8 @@ function RainStrip({ side }: { side: "left" | "right" }) {
         height: "100vh",
         pointerEvents: "none",
         zIndex: 1,
-        opacity: TARGET_OPACITY,
-        transition: "opacity 0.4s ease",
+        opacity: 0,
+        transition: "opacity 0.25s ease",
         display: "var(--matrix-display, block)",
       }}
     />

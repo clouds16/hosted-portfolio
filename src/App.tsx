@@ -19,6 +19,7 @@ import { Projects } from "./components/Projects";
 import { Education } from "./components/Education";
 import { Contact } from "./components/Contact";
 import { DisciplineProvider } from "./discipline";
+import { playBoot, playShutdown } from "./lib/hackSounds";
 
 export default function App() {
   const [hackMode, setHackMode] = useState(false);
@@ -58,6 +59,7 @@ export default function App() {
     if (hackMode) {
       // Powering down — keep effects visible during the shutdown overlay,
       // then drop hack mode at the end.
+      playShutdown();
       setShutdownFlash(true);
       window.setTimeout(() => {
         setShutdownFlash(false);
@@ -66,6 +68,7 @@ export default function App() {
     } else {
       // Booting up — flip mode immediately so effects mount, then run boot
       // overlay on top.
+      playBoot();
       setHackMode(true);
       setBootFlash(true);
       window.setTimeout(() => setBootFlash(false), BOOT_DURATION_MS);
